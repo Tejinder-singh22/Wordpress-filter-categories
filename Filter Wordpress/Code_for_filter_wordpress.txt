@@ -1,0 +1,103 @@
+
+
+
+
+Main page 
+
+Select option button
+
+<form action="<?php echo site_url() ?>/wp-admin/admin-ajax.php" method="POST" id="filter">
+<select name="cats" id="cats">
+    <option>Please select filter</option>
+    <option><a href="<?php echo site_url() ?>"></a>All</option>
+	<?php
+
+$args = array(
+    'post_type' => 'product',
+    'orderby' => 'name',
+    'order'   => 'ASC',
+    'taxonomy'=> 'product_cat'
+);
+
+$cats = get_categories($args);
+foreach ($cats as $term){ ?>
+<option value="<?php echo $term->slug; ?>"><?php echo $term->name; ?></option>
+<?php } ?>
+</select>
+	<button id="processing" style="display:none"></button>
+	<input type="hidden" name="action" value="myfilter">
+</form>
+
+
+
+
+
+
+List Original on this page
+
+<?php $args = array( 'post_type' => 'product');
+$loop = new WP_Query( $args );
+
+while ( $loop->have_posts() ) : $loop->the_post(); 
+ $url = wp_get_attachment_url( get_post_thumbnail_id(get_the_ID(), 'thumbnail' ));
+ 	$terms = get_terms([
+    'taxonomy' => 'item',
+    'hide_empty' => false,
+]);
+?>
+		<div class="col-sm-4" style="text-align:center">
+		<img src="<?php echo $url; ?>" style="width:200px" height=200; style="text-align:center">
+		<p><?php the_title(); ?></p>
+		</div>
+<?php endwhile; wp_reset_query(); // Remember to reset ?>
+
+
+
+
+
+
+Functions.php
+
+// FILTER FUNCTION
+	add_action('wp_ajax_myfilter', 'filter_function'); // wp_ajax_{ACTION HERE} 
+	add_action('wp_ajax_nopriv_myfilter', 'filter_function');
+	
+	function filter_function(){
+		$args = array(
+		'post_type' => 'product',
+		);
+	 
+		if( isset( $_POST['cats'] ) )
+		$cat =  $_POST['cats'];
+
+		if($cat != 'All'){
+		$args['tax_query'] = array(
+			array(
+				'taxonomy' => 'product_cat',
+				'field' => 'slug',
+				'terms' => $cat
+			)
+		);
+	}
+		
+	$loop = new WP_Query( $args );
+	if( $loop->have_posts() ) :
+	while ( $loop->have_posts() ) : $loop->the_post(); 
+	 $url = wp_get_attachment_url( get_post_thumbnail_id(get_the_ID(), 'thumbnail' ));
+	?>
+			<div class="col-sm-4" style="text-align:center">
+	
+			<img src="<?php echo get_the_post_thumbnail_url(); ?>" style="width:200px" height=200; style="text-align:center">
+			<p><?php the_title(); ?></p>
+			</div>
+	<?php endwhile; wp_reset_query(); // Remember to reset 
+	else :
+			echo 'No posts found';
+		endif;
+		
+		die();
+	}
+
+
+
+
